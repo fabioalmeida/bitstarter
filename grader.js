@@ -15,6 +15,9 @@ References:
    - https://github.com/visionmedia/commander.js
    - http://tjholowaychuk.com/post/9103188408/commander-js-nodejs-command-line-interfaces-made-easy
 
+ + restler
+   - https://github.com/danwrong/restler 
+
  + JSON
    - http://en.wikipedia.org/wiki/JSON
    - https://developer.mozilla.org/en-US/docs/JSON
@@ -24,16 +27,33 @@ References:
 var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
+var restler = require('restler');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var URL_DEFAULT = "http://secret-island-3981.herokuapp.com/";
 
 var assertFileExists = function(infile) {
+
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
         console.log("%s does not exist. Exiting.", instr);
         process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
     }
     return instr;
+};
+
+var assertUrlExists = function(inUrl) {
+
+   var url = inUrl.toString();
+
+    restler.get(inUrl).on('complete', function(result) {
+
+      if (result instanceof Error) {
+        console.log("URL %s does not exist. RESULT: %s Exiting. ", inUrl, result);
+        process.exit(1);
+      }
+    });
+    return url;
 };
 
 var cheerioHtmlFile = function(htmlfile) {
@@ -55,6 +75,24 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     return out;
 };
 
+var checkHtmlInUrl = function(inUrl, checksfile) {
+    var url = inUrl.toString();
+
+    restler.get(url).once('complete', function(result) {
+
+      $ = cheerio.load(result);
+      var checks = loadChecks(checksfile).sort();
+      var out = {};
+      for(var ii in checks) {
+          var present = $(checks[ii]).length > 0;
+          out[checks[ii]] = present;
+      }
+
+      var outJson = JSON.stringify(out, null, 4);
+      console.log(outJson);
+    });
+};
+
 var clone = function(fn) {
     // Workaround for commander.js issue.
     // http://stackoverflow.com/a/6772648
@@ -65,10 +103,17 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-u, --url <url>', 'URL to file', clone(assertUrlExists), URL_DEFAULT)
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+
+    if(program.url != null) {
+      checkHtmlInUrl(program.url, program.checks);
+    }
+    else {
+      var checkJson = checkHtmlFile(program.file, program.checks);      
+      var outJson = JSON.stringify(checkJson, null, 4);
+      console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
