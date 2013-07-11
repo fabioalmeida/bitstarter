@@ -30,7 +30,7 @@ var cheerio = require('cheerio');
 var restler = require('restler');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
-var URL_DEFAULT = "http://secret-island-3981.herokuapp.com/";
+//var URL_DEFAULT = "http://secret-island-3981.herokuapp.com/";
 
 var assertFileExists = function(infile) {
 
@@ -103,7 +103,7 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .option('-u, --url <url>', 'URL to file', clone(assertUrlExists), URL_DEFAULT)
+        .option('-u, --url <url>', 'URL to file', clone(assertUrlExists))
         .parse(process.argv);
 
     if(program.url != null) {
